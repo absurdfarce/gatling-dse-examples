@@ -13,8 +13,6 @@ dependencies {
     gatling "io.netty:netty-all:4.1.39.Final"
 }
 
-//def props = new Properties().load(new File(project.projectDir,"creds.props").newInputStream())
-
 repositories {
     mavenCentral()
     mavenLocal()
