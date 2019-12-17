@@ -10,8 +10,6 @@ dependencies {
     gatling "com.datastax.gatling.plugin:gatling-dse-plugin_2.12:1.3.4"
 }
 
-//def props = new Properties().load(new File(project.projectDir,"creds.props").newInputStream())
-
 repositories {
     mavenCentral()
     mavenLocal()
