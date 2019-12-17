@@ -1,7 +1,9 @@
 package com.datastax.gatling;
 
-import com.datastax.driver.dse.DseCluster;
-import com.datastax.driver.dse.DseSession;
+
+import com.datastax.dse.driver.api.core.DseSession;
+
+import java.net.InetSocketAddress;
 
 /**
  * Simple factory class to avoid Session references in DseSession builder when
@@ -10,6 +12,9 @@ import com.datastax.driver.dse.DseSession;
 public class DseSessionFactory {
 
     public static DseSession build(String host) {
-        return DseCluster.builder().addContactPoint(host).build().connect();
+        return DseSession.builder()
+                .withLocalDatacenter("Cassandra")
+                .addContactPoint(new InetSocketAddress(host,9042))
+                .build();
     }
 }

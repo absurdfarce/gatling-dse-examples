@@ -1,6 +1,9 @@
 package com.datastax.gatling
 
-import com.datastax.driver.core.{SimpleStatement => SimpleS}
+import com.datastax.oss.driver.api.core.cql.{
+  SimpleStatement => SimpleS,
+  SimpleStatementBuilder => SimpleB
+}
 import com.datastax.gatling.plugin.model.{DseCqlAttributes, DseCqlAttributesBuilder, DseCqlStatement}
 import io.gatling.commons.validation._
 import io.gatling.core.session._
@@ -16,8 +19,8 @@ import io.gatling.core.session._
  * most of it's life... but it work for what we need.
  */
 object MoreDseCqlStatements {
-  def simpleStatementFromSession(tag:String, key:String): DseCqlAttributesBuilder = {
-    DseCqlAttributesBuilder(
+  def simpleStatementFromSession(tag:String, key:String): DseCqlAttributesBuilder[SimpleS, SimpleB] = {
+    DseCqlAttributesBuilder[SimpleS, SimpleB](
       DseCqlAttributes(
         tag,
         new DseCqlSimpleStatementFromSession(key),
@@ -27,9 +30,9 @@ object MoreDseCqlStatements {
 }
 
 class DseCqlSimpleStatementFromSession(key: String)
-  extends DseCqlStatement {
+  extends DseCqlStatement[SimpleS, SimpleB] {
 
-    def buildFromSession(gatlingSession: Session): Validation[SimpleS] = {
-      gatlingSession.attributes.get(key).get.asInstanceOf[SimpleS].success
+    def buildFromSession(gatlingSession: Session): Validation[SimpleB] = {
+      gatlingSession.attributes.get(key).get.asInstanceOf[SimpleB].success
     }
 }

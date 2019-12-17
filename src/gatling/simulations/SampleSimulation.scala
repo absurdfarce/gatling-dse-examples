@@ -1,9 +1,9 @@
-import com.datastax.driver.core.querybuilder.QueryBuilder
-import com.datastax.driver.core.{DataType, SimpleStatement}
-import com.datastax.driver.core.schemabuilder.SchemaBuilder
 import com.datastax.gatling.{DseSessionFactory, MoreDseCqlStatements}
 import io.gatling.core.Predef._
 import com.datastax.gatling.plugin.DsePredef._
+import com.datastax.oss.driver.api.core.`type`.DataTypes
+import com.datastax.oss.driver.api.core.cql.SimpleStatementBuilder
+import com.datastax.oss.driver.api.querybuilder.{QueryBuilder, SchemaBuilder}
 
 import collection.JavaConverters._
 
@@ -18,19 +18,23 @@ class SampleSimulation extends Simulation {
   val cqlConfig = dseProtocolBuilder.session(session)
 
   session.execute(
-    SchemaBuilder.createKeyspace(keyspace).ifNotExists().`with`().replication(
-      Map("class" -> "SimpleStrategy".asInstanceOf[Object], "replication_factor" -> "1").asJava))
+    SchemaBuilder.createKeyspace(keyspace).ifNotExists()
+      .withReplicationOptions(
+        Map("class" -> "SimpleStrategy".asInstanceOf[Object], "replication_factor" -> "1").asJava)
+      .build())
   session.execute(
     SchemaBuilder.createTable(keyspace, table_name).ifNotExists()
-      .addStaticColumn("str", DataType.text())
-      .addClusteringColumn("num", DataType.cint())
-      .addPartitionKey("id",DataType.timeuuid()))
+      .withPartitionKey("id",DataTypes.TIMEUUID)
+      .withStaticColumn("str", DataTypes.TEXT)
+      .withClusteringColumn("num", DataTypes.INT)
+      .build())
   val prepared =
     session.prepare(
       QueryBuilder.insertInto(keyspace, table_name)
         .value("id",QueryBuilder.now())
         .value("num", QueryBuilder.bindMarker())
-        .value("str", QueryBuilder.bindMarker()))
+        .value("str", QueryBuilder.bindMarker())
+    .build())
 
   val random = new util.Random
   val feeder = Iterator.continually(
@@ -38,8 +42,10 @@ class SampleSimulation extends Simulation {
       "randomString" -> random.nextString(20),
       "randomNum" -> random.nextInt()
     ))
-  val enhancedFeeder = feeder.map((base:Map[String,Any]) => {
-    base + ("query" -> new SimpleStatement(s"select * from test.test_table where num = ${base.get("randomNum").get} allow filtering"))
+  val enhancedFeeder =
+    feeder.map((base:Map[String,Any]) => {
+      val query = s"select * from test.test_table where num = ${base.get("randomNum").get} allow filtering"
+      base + ("query" -> new SimpleStatementBuilder(query))
   })
 
   val scn = scenario("Sample")
@@ -68,5 +74,5 @@ class SampleSimulation extends Simulation {
   setUp(scn.inject(atOnceUsers(10)))
       .protocols(cqlConfig)
 
-  after(session.getCluster.close)
+  after(session.close)
 }
