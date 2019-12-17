@@ -26,8 +26,8 @@ class SampleSimulation extends Simulation {
   session.execute(
     SchemaBuilder.createTable(keyspace, table_name).ifNotExists()
       .withPartitionKey("id",DataTypes.TIMEUUID)
-      .withStaticColumn("str", DataTypes.TEXT)
       .withClusteringColumn("num", DataTypes.INT)
+      .withStaticColumn("str", DataTypes.TEXT)
       .build())
   val prepared =
     session.prepare(
@@ -58,15 +58,11 @@ class SampleSimulation extends Simulation {
             .withParams(List("randomNum", "randomString"))
             .check(warnings.transform(_.size).is(0))
         )
-        .exec { gatling =>
-          println(gatling.attributes.get("randomNum").get)
-          gatling
-        }
         .exec(
           MoreDseCqlStatements.simpleStatementFromSession("Simple select","query")
-            // The existing API would implement a check using something like this...
-            .check(warnings.transform(_.size).is(0))
-            // Another way to implement the same test would be to work directly off the ResultSet
+            // The existing API would implement a check using something like this:
+            //.check(warnings.transform(_.size).is(0))
+            // Another way to implement the same test would be to work directly off the ResultSet:
             .check(resultSet.transform(_.getExecutionInfo.getWarnings.size).is(0))
 
             // The old allRows check can also now be expressed in terms of the result set only.  We
@@ -74,6 +70,12 @@ class SampleSimulation extends Simulation {
             //.check(allRows.transform(_.size).is(1))
             // since we now have:
             .check(resultSet.transform(toIter(_).toSeq.size).is(1))
+
+            // Even the above change may be too much since the conversion to a Seq likely requires a full realization
+            // of the iterator before determining a size.  Especially for single-page queries we can leverage the
+            // ResultSet more efficiently
+            .check(resultSet.transform(_.hasMorePages).is(false))
+            .check(resultSet.transform(_.remaining()).is(1))
         )
     }
 
