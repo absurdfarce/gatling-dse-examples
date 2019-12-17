@@ -1,6 +1,7 @@
 import com.datastax.gatling.{DseSessionFactory, MoreDseCqlStatements}
 import io.gatling.core.Predef._
 import com.datastax.gatling.plugin.DsePredef._
+import com.datastax.gatling.plugin.utils.ResultSetUtils.{asyncResultSetToIterator => toIter}
 import com.datastax.oss.driver.api.core.`type`.DataTypes
 import com.datastax.oss.driver.api.core.cql.SimpleStatementBuilder
 import com.datastax.oss.driver.api.querybuilder.{QueryBuilder, SchemaBuilder}
@@ -67,7 +68,12 @@ class SampleSimulation extends Simulation {
             .check(warnings.transform(_.size).is(0))
             // Another way to implement the same test would be to work directly off the ResultSet
             .check(resultSet.transform(_.getExecutionInfo.getWarnings.size).is(0))
-            .check(allRows.transform(_.size).is(1))
+
+            // The old allRows check can also now be expressed in terms of the result set only.  We
+            // no longer need this:
+            //.check(allRows.transform(_.size).is(1))
+            // since we now have:
+            .check(resultSet.transform(toIter(_).toSeq.size).is(1))
         )
     }
 
