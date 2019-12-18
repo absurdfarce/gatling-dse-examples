@@ -56,7 +56,7 @@ class SampleSimulation extends Simulation {
           cql("Prepared insert")
             .executeStatement(prepared)
             .withParams(List("randomNum", "randomString"))
-            .check(warnings.transform(_.size).is(0))
+            .check(resultSet.transform(_.getExecutionInfo.getWarnings.size).is(0))
         )
         .exec(
           MoreDseCqlStatements.simpleStatementFromSession("Simple select","query")
