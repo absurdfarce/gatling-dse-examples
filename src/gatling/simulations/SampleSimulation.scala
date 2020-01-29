@@ -65,17 +65,22 @@ class SampleSimulation extends Simulation {
             // Another way to implement the same test would be to work directly off the ResultSet:
             .check(resultSet.transform(_.getExecutionInfo.getWarnings.size).is(0))
 
-            // The old allRows check can also now be expressed in terms of the result set only.  We
-            // no longer need this:
-            //.check(allRows.transform(_.size).is(1))
-            // since we now have:
-            .check(resultSet.transform(toIter(_).toSeq.size).is(1))
-
             // Even the above change may be too much since the conversion to a Seq likely requires a full realization
             // of the iterator before determining a size.  Especially for single-page queries we can leverage the
             // ResultSet more efficiently
             .check(resultSet.transform(_.hasMorePages).is(false))
             .check(resultSet.transform(_.remaining()).is(1))
+
+            // Note that the above checks have not actually consumed any data from the AsyncResultSet; that's how
+            // things like the remaining() check succeeds.  Checks are now executed in the order in which they're
+            // declared so checks of meta-properties (like all of the ones above) should come before anything which
+            // actually loads data.
+
+            // The old allRows check can also now be expressed in terms of the result set only.  We
+            // no longer need this:
+            //.check(allRows.transform(_.size).is(1))
+            // since we now have:
+            .check(resultSet.transform(toIter(_).toSeq.size).is(1))
         )
     }
 
